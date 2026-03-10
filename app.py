@@ -25,6 +25,10 @@ html,body,[class*="css"],.stApp{font-family:'Noto Sans KR',sans-serif!important;
 section[data-testid="stSidebar"]{background:#ffffff!important;border-right:1px solid #e2e6ea!important;}
 section[data-testid="stSidebar"]>div{padding:20px 12px!important;}
 section[data-testid="stSidebar"] *{color:#374151!important;}
+/* 사이드바 멀티셀렉트 선택 태그 흰색 글씨 */
+section[data-testid="stSidebar"] [data-baseweb="tag"] span{color:#ffffff!important;}
+section[data-testid="stSidebar"] [data-baseweb="tag"]{background:#6366f1!important;}
+section[data-testid="stSidebar"] [data-baseweb="tag"] [role="button"]{color:#ffffff!important;}
 .main .block-container{padding:20px 28px!important;max-width:1400px!important;}
 
 /* 사이드바 버튼 스타일 */
@@ -104,41 +108,46 @@ def add_text_box_style(fig):
 
 CH_COLOR = {"CALL-IN":"#6366f1","CALL-OB":"#06b6d4","CHAT":"#22c55e","게시판":"#f59e0b"}
 
-# ── 세분화된 이슈 패턴 (기타를 최대한 줄임) ──
+# ── 이슈 분류 패턴 (실제 감점사유 텍스트 기반, 정확도 최우선) ──
+# 우선순위: 구체적·긴 패턴 먼저 → 짧은 패턴 나중
 ISSUE_PATTERNS = [
-    # 인사/응대 기본
-    ("첫인사 누락",         r"첫인사.*누락|인사.*누락(?!.*끝)"),
-    ("끝인사 누락",         r"끝인사.*누락"),
-    ("통화종료 미흡",       r"통화종료|먼저.*끊|종료.*미흡"),
-    ("정보확인 누락",       r"정보확인.*누락|본인확인.*누락|정보.*확인.*미"),
-    # 언어/말투
-    ("습관어/말버릇",       r"습관어|말버릇|아무래도|저희쪽|구요~|그니까|근데|뭐|음+|어+"),
-    ("존칭 오류",           r"존칭|요조체|비정중|반말|말투|셨을까요|하세요체|합쇼체"),
-    ("토막말/도치",         r"토막말|도치|문장.*불완전|끊김"),
-    ("두괄식 미이행",       r"두괄식|결론.*먼저|결론.*후"),
-    ("문법/띄어쓰기",       r"띄어쓰기|문법|오타|맞춤법|철자"),
-    ("이모티콘 사용",       r"이모티콘|이모지|😊|^^|ㅠ|ㅎ"),
-    # 고객응대 태도
-    ("양해 누락",           r"양해.*누락|양해.*미이행|대기.*양해|보류.*양해"),
-    ("호응 부족",           r"호응.*누락|호응.*부족|적극적.*호응|공감.*부족|경청.*부족"),
-    ("감정연출 미흡",       r"감정연출|공감.*미흡|감정.*부족|톤.*단조"),
-    ("대기 안내 누락",      r"대기.*안내.*누락|보류.*안내.*누락|대기.*미안내"),
-    # 업무 처리
-    ("안내 누락",           r"안내.*누락|미안내(?!.*대기)"),
-    ("오안내",              r"오안내|잘못.*안내|틀린.*안내|안내.*오류"),
-    ("프로세스 미준수",     r"프로세스.*미준수|절차.*누락|순서.*오류|약속.*미준수"),
-    ("처리 오류/지연",      r"처리.*오류|처리.*지연|처리.*미흡|업무.*오류"),
-    ("이력 미기재",         r"이력.*누락|이력.*미기재|기재.*누락|메모.*누락"),
-    ("전산처리 오류",       r"전산.*오류|전산.*누락|시스템.*오류|전산.*미처리"),
-    # 채팅/게시판 전용
-    ("가독성 부족",         r"가독성|문단.*나눔|엔터|줄바꿈|단락"),
-    ("첨부 누락",           r"사진.*누락|첨부.*누락|파일.*누락"),
-    ("문의파악 미흡",       r"문의.*파악|재질의|재문의|요청.*파악.*미흡|내용.*확인.*미흡"),
-    ("맞춤설명 부족",       r"맞춤.*설명|개인화.*설명|상황.*맞는.*설명"),
-    ("정확한안내 미흡",     r"부정확|정확.*미흡|안내.*불충분|정보.*불완전"),
-    # 음성 전용
-    ("음성숙련도 미흡",     r"음성.*숙련|발음|말속도|목소리|속도.*빠름|속도.*느림"),
-    ("인사톤 미흡",         r"인사톤|톤.*낮음|톤.*무감"),
+    # ── 인사 관련 ──
+    ("첫인사 누락",       r"첫인사\s*(누락|미이행|안\s*함|하지\s*않)|인사\s*누락(?!.*끝)"),
+    ("끝인사 누락",       r"끝인사\s*(누락|미이행|안\s*함)|마무리\s*인사\s*(누락|미이행)"),
+    ("통화종료 미흡",     r"통화\s*종료\s*(미흡|누락|먼저)|먼저\s*끊|종료\s*(미흡|오류)"),
+    ("정보확인 누락",     r"정보\s*확인\s*(누락|미이행|안\s*함)|본인\s*확인\s*(누락|미이행)|인증\s*(누락|미이행)"),
+    ("인사톤 미흡",       r"인사\s*톤|톤\s*(낮음|무감|단조|미흡)|발성\s*미흡"),
+
+    # ── 언어·말투 ──
+    ("습관어/말버릇",     r"습관어|말버릇|아무래도|저희\s*쪽|구요\s*~|그\s*니까|어\s*~|음\s*~|네\s*~\s*네|에\s*~"),
+    ("존칭 오류",         r"존칭\s*(오류|누락|미사용)|요조체|비\s*정중|반말|하세요체\s*오류|합쇼체\s*오류|셨을까요|존댓말"),
+    ("토막말/도치",       r"토막말|도치\s*(문장)?|문장\s*(불완전|끊김|짧음)|짧게\s*끊|끊어\s*말"),
+    ("두괄식 미이행",     r"두괄식|결론\s*(먼저|후에|나중)|요점\s*먼저"),
+    ("문법/띄어쓰기",     r"띄어\s*쓰기|문법\s*(오류|틀림)|맞춤법|오타|철자\s*(오류|틀림)"),
+
+    # ── 고객응대 태도 ──
+    ("양해 누락",         r"양해\s*(누락|미이행|안\s*함)|양해\s*멘트\s*(누락|미이행)|대기\s*양해|보류\s*양해|보류\s*전\s*양해"),
+    ("대기 안내 누락",    r"대기\s*안내\s*(누락|미이행)|보류\s*안내\s*(누락|미이행)|홀드\s*안내\s*(누락|미이행)"),
+    ("호응 부족",         r"호응\s*(누락|부족|미흡|없음)|즉각\s*호응\s*(누락|부족)|공감\s*(부족|미흡)|경청\s*(부족|미흡)"),
+    ("감정연출 미흡",     r"감정\s*연출\s*(미흡|부족)|감성\s*(응대|멘트)\s*(미흡|부족)|공감\s*멘트\s*(누락|미흡)"),
+
+    # ── 안내·업무 처리 ──
+    ("오안내",            r"오\s*안내|잘못\s*(안내|설명)|틀린\s*안내|안내\s*오류|잘못된\s*정보"),
+    ("안내 누락",         r"안내\s*(누락|미이행|빠짐)|미\s*안내(?!\s*대기)|설명\s*(누락|빠짐)"),
+    ("문의파악 미흡",     r"문의\s*파악\s*(미흡|부족|안\s*됨)|재\s*질의|재\s*문의|문의\s*내용\s*(파악|확인)\s*(미흡|안\s*됨)|요청\s*파악\s*(미흡|부족)"),
+    ("맞춤설명 부족",     r"맞춤\s*(설명|안내)\s*(부족|미흡|누락)|개인화\s*(설명|안내)|고객\s*상황\s*(미반영|미고려)"),
+    ("정확한안내 미흡",   r"부정확|정확\s*(하지|하게)\s*(않|못)|정보\s*(불완전|부정확)|안내\s*(불충분|미흡|부족)"),
+    ("프로세스 미준수",   r"프로세스\s*(미준수|위반|누락)|절차\s*(누락|미준수|위반)|순서\s*(오류|위반)|약속\s*(미준수|불이행)"),
+    ("처리 오류/지연",    r"처리\s*(오류|지연|미흡|실수)|업무\s*(오류|실수|지연)|잘못\s*처리"),
+    ("이력 미기재",       r"이력\s*(누락|미기재|미작성|안\s*씀)|상담\s*이력\s*(누락|미기재)|메모\s*(누락|미작성)|기재\s*(누락|안\s*됨)"),
+    ("전산처리 오류",     r"전산\s*(오류|누락|미처리|실수)|시스템\s*(오류|누락)|입력\s*(오류|누락|실수)"),
+
+    # ── 채팅/게시판 전용 ──
+    ("가독성 부족",       r"가독성|문단\s*(나눔|없음|미흡)|엔터\s*(없음|미사용)|줄\s*바꿈\s*(없음|미흡)|단락\s*(없음|미구분)"),
+    ("첨부 누락",         r"(사진|파일|첨부|이미지)\s*(누락|미첨부|빠짐)"),
+
+    # ── 음성 전용 ──
+    ("음성숙련도 미흡",   r"음성\s*숙련(도)?\s*(미흡|부족)|발음\s*(불명확|미흡|나쁨)|말\s*속도\s*(빠름|느림|미흡)|목소리\s*(미흡|작음|불명확)"),
 ]
 
 ROOT_CAUSE = {
@@ -146,29 +155,28 @@ ROOT_CAUSE = {
     "끝인사 누락":       "끝인사 체크리스트 미이행 → 콜 마무리 루틴 점검",
     "통화종료 미흡":     "통화종료 절차 미숙 → 종료 멘트 패턴 훈련",
     "정보확인 누락":     "본인인증 절차 누락 → 프로세스 재교육",
+    "인사톤 미흡":       "발화 톤 관리 부족 → 인사 톤 연습",
     "습관어/말버릇":     "무의식적 언어 습관 → 녹취 모니터링 후 의식적 교정",
     "존칭 오류":         "경어법 이해 부족 → 표준 멘트 암기 훈련",
     "토막말/도치":       "문장 구성 습관 → 완전한 문장 말하기 연습",
     "두괄식 미이행":     "설명 구조 습관 → 결론 먼저 말하는 훈련",
     "문법/띄어쓰기":     "문서 작성 능력 부족 → 글쓰기 교육",
-    "이모티콘 사용":     "채널 예절 이해 부족 → 공식 채널 예절 교육",
     "양해 누락":         "고객 공감 부족 → 양해 멘트 패턴 훈련",
+    "대기 안내 누락":    "대기 안내 절차 누락 → 보류 전 멘트 습관화",
     "호응 부족":         "경청 자세 부족 → 적극적 호응 연습",
     "감정연출 미흡":     "감성 응대 부족 → 감정연출 스크립트 교육",
-    "대기 안내 누락":    "대기 안내 절차 누락 → 보류 전 멘트 습관화",
-    "안내 누락":         "업무 숙지 미흡 → 주요 안내사항 재교육",
     "오안내":            "업무 지식 오류 → 정확한 업무 매뉴얼 재숙지",
+    "안내 누락":         "업무 숙지 미흡 → 주요 안내사항 재교육",
+    "문의파악 미흡":     "청취 이해 부족 → 문의 요약 확인 습관 훈련",
+    "맞춤설명 부족":     "고객 상황 파악 부족 → 개인화 응대 교육",
+    "정확한안내 미흡":   "정보 정확도 부족 → 업무 지식 강화 교육",
     "프로세스 미준수":   "절차 이해 부족 → 프로세스 플로우 재교육",
     "처리 오류/지연":    "업무 정확도 부족 → 처리 단계별 확인 습관화",
     "이력 미기재":       "기록 습관 부재 → 상담 후 이력 루틴화",
     "전산처리 오류":     "시스템 활용 미숙 → 전산 처리 재교육",
     "가독성 부족":       "채팅 문서화 부족 → 구조화 글쓰기 교육",
     "첨부 누락":         "체크리스트 미활용 → 처리 단계 확인 습관화",
-    "문의파악 미흡":     "청취 이해 부족 → 문의 요약 확인 습관 훈련",
-    "맞춤설명 부족":     "고객 상황 파악 부족 → 개인화 응대 교육",
-    "정확한안내 미흡":   "정보 정확도 부족 → 업무 지식 강화 교육",
     "음성숙련도 미흡":   "발화 기술 부족 → 음성 훈련 및 모니터링",
-    "인사톤 미흡":       "발화 톤 관리 부족 → 인사 톤 연습",
     "기타":              "개별 피드백 참고 후 맞춤 교육",
 }
 
@@ -259,7 +267,7 @@ BOARD_ITEMS = {
     "정확한안내":(28, 10),
     "프로세스":  (31, 10),
     "전산처리":  (34, 10),
-    "상담이력":  (37, 15),
+    "상담이력":  (37, 10),   # 만점 10점 (수정)
 }
 
 @st.cache_data(ttl=300)
@@ -552,6 +560,45 @@ if page == "개요 및 위기감지":
                               annotation_text=f"전체평균", annotation_font_color="#94a3b8")
                 st.plotly_chart(fig, use_container_width=True)
 
+            # ── 채널별 항목 이행률 추이 (상담사별 채널 점수 비교 바로 아래) ──
+            st.markdown("#### 채널별 항목 이행률 추이")
+            ov_tab1, ov_tab2, ov_tab3 = st.tabs(["CALL", "CHAT", "게시판"])
+            for ov_tab, ov_src, ov_map, ov_lbl in [
+                (ov_tab1, df_c, CALL_ITEMS, "CALL"),
+                (ov_tab2, df_h, CHAT_ITEMS, "CHAT"),
+                (ov_tab3, df_b, BOARD_ITEMS, "게시판"),
+            ]:
+                with ov_tab:
+                    if ov_src is None or len(ov_src)==0:
+                        st.info(f"{ov_lbl} 데이터 없음"); continue
+                    trend_df = get_item_trend_df(ov_src, ov_map)
+                    if len(trend_df):
+                        avg_trend = trend_df.groupby(["기간","기간_정렬"])["이행률"].mean().reset_index().sort_values("기간_정렬")
+                        low_items = trend_df.groupby("항목")["이행률"].mean().nsmallest(5).index.tolist()
+                        low_trend = trend_df[trend_df["항목"].isin(low_items)]
+                        col1_ov, col2_ov = st.columns(2)
+                        with col1_ov:
+                            fig = px.line(avg_trend, x="기간", y="이행률", markers=True,
+                                          labels={"이행률":"전체 이행률 (%)"},
+                                          text="이행률")
+                            plt_theme(fig, f"{ov_lbl} 전체 이행률 추이", 260)
+                            fig.update_traces(line=dict(width=2.5,color="#6366f1"), marker=dict(size=7),
+                                              texttemplate="%{text:.1f}%", textposition="top center",
+                                              textfont=dict(size=10,color="#1e2330"))
+                            fig.add_hline(y=90, line_dash="dot", line_color="#22c55e", annotation_text="목표 90%")
+                            st.plotly_chart(fig, use_container_width=True)
+                        with col2_ov:
+                            if len(low_trend):
+                                fig2 = px.line(low_trend, x="기간", y="이행률", color="항목",
+                                               markers=True, labels={"이행률":"이행률 (%)"},
+                                               text="이행률")
+                                plt_theme(fig2, f"{ov_lbl} 하위 항목 이행률 추이 (하위 5개)", 260)
+                                fig2.update_traces(line=dict(width=2), marker=dict(size=6),
+                                                   texttemplate="%{text:.0f}%", textposition="top center",
+                                                   textfont=dict(size=9,color="#1e2330"))
+                                fig2.add_hline(y=90, line_dash="dot", line_color="#94a3b8")
+                                st.plotly_chart(fig2, use_container_width=True)
+
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
     # ── 항목별 감점 기여자 히트맵 ──
@@ -590,48 +637,6 @@ if page == "개요 및 위기감지":
                 st.plotly_chart(fig, use_container_width=True)
             else:
                 st.info("감점 데이터 없음")
-
-    # ── 채널별 항목 이행률 추이 (개요 하단 추가) ──
-    st.markdown("#### 채널별 항목 이행률 추이")
-    ov_tab1, ov_tab2, ov_tab3 = st.tabs(["CALL", "CHAT", "게시판"])
-    for ov_tab, ov_src, ov_map, ov_lbl in [
-        (ov_tab1, df_c, CALL_ITEMS, "CALL"),
-        (ov_tab2, df_h, CHAT_ITEMS, "CHAT"),
-        (ov_tab3, df_b, BOARD_ITEMS, "게시판"),
-    ]:
-        with ov_tab:
-            if ov_src is None or len(ov_src)==0:
-                st.info(f"{ov_lbl} 데이터 없음"); continue
-            trend_df = get_item_trend_df(ov_src, ov_map)
-            if len(trend_df):
-                # 전체 이행률 평균 추이
-                avg_trend = trend_df.groupby(["기간","기간_정렬"])["이행률"].mean().reset_index().sort_values("기간_정렬")
-                # 하위 항목 (이행률 낮은 5개) 추이
-                low_items = trend_df.groupby("항목")["이행률"].mean().nsmallest(5).index.tolist()
-                low_trend = trend_df[trend_df["항목"].isin(low_items)]
-
-                col1_ov, col2_ov = st.columns(2)
-                with col1_ov:
-                    fig = px.line(avg_trend, x="기간", y="이행률", markers=True,
-                                  labels={"이행률":"전체 이행률 (%)"},
-                                  text="이행률")
-                    plt_theme(fig, f"{ov_lbl} 전체 이행률 추이", 260)
-                    fig.update_traces(line=dict(width=2.5,color="#6366f1"), marker=dict(size=7),
-                                      texttemplate="%{text:.1f}%", textposition="top center",
-                                      textfont=dict(size=10,color="#1e2330"))
-                    fig.add_hline(y=90, line_dash="dot", line_color="#22c55e", annotation_text="목표 90%")
-                    st.plotly_chart(fig, use_container_width=True)
-                with col2_ov:
-                    if len(low_trend):
-                        fig2 = px.line(low_trend, x="기간", y="이행률", color="항목",
-                                       markers=True, labels={"이행률":"이행률 (%)"},
-                                       text="이행률")
-                        plt_theme(fig2, f"{ov_lbl} 하위 항목 이행률 추이 (하위 5개)", 260)
-                        fig2.update_traces(line=dict(width=2), marker=dict(size=6),
-                                           texttemplate="%{text:.0f}%", textposition="top center",
-                                           textfont=dict(size=9,color="#1e2330"))
-                        fig2.add_hline(y=90, line_dash="dot", line_color="#94a3b8")
-                        st.plotly_chart(fig2, use_container_width=True)
 
     # ── 기간별 점수 추이 ──
     st.markdown("#### 기간별 평균 점수 추이")
