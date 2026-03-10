@@ -1468,6 +1468,7 @@ elif page == "항목별 원인 추적":
                         cmt_recs_ot.append({
                             "이슈유형": cat,
                             "차수": row_ot.get("평가기간",""),
+                            "KEY": row_ot.get("KEY",""),
                             "상담사": row_ot.get("상담사",""),
                             "코멘트": cmt,
                             "점수": _num(sc_v),
@@ -1504,7 +1505,7 @@ elif page == "항목별 원인 추적":
                 # 원본 코멘트 테이블
                 st.markdown("**📋 감점 원본 코멘트 (차수 포함)**")
                 if cmt_recs_ot:
-                    cmt_show = pd.DataFrame(cmt_recs_ot)[["차수","상담사","이슈유형","점수","코멘트"]]
+                    cmt_show = pd.DataFrame(cmt_recs_ot)[["차수","KEY","상담사","이슈유형","점수","코멘트"]]
                     # 이슈유형 필터
                     available_issues = sorted(cmt_show["이슈유형"].unique().tolist())
                     sel_issues_ot = st.multiselect(
