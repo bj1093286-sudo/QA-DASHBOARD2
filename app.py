@@ -306,7 +306,7 @@ BOARD_ITEMS = {
 @st.cache_data(ttl=300)
 def load_data():
     def parse(url, items_map, agent_col, period_col, inq_cols,
-               total_col, eval_col, bonus_col, pen_col, inout_col=None, skip=3):
+               total_col, eval_col, bonus_col, pen_col, inout_col=None, skip=3, key_col=None):
         try:
             raw = pd.read_csv(url, header=None)
         except Exception as e:
@@ -319,6 +319,7 @@ def load_data():
             rec = {
                 "상담사": agent,
                 "평가기간": _s(row.iloc[period_col]),
+                "KEY": _s(row.iloc[key_col] if key_col is not None and key_col < len(row) else None),
                 "문의유형대": _s(row.iloc[inq_cols[0]]),
                 "문의유형중": _s(row.iloc[inq_cols[1]]),
                 "문의유형소": _s(row.iloc[inq_cols[2]]),
@@ -344,18 +345,18 @@ def load_data():
         return pd.DataFrame(records) if records else pd.DataFrame()
 
     df_call = parse(gsheet_csv_url(SHEET_ID, GID_CALL), CALL_ITEMS,
-                    3,1,[5,6,7],64,65,62,63, inout_col=2)
+                    3,1,[5,6,7],64,65,62,63, inout_col=2, key_col=4)  # E열=4
     if len(df_call):
         df_call["채널"] = df_call["평가대상"].apply(
             lambda x: "CALL-IN" if str(x).upper().strip()=="IN"
                       else "CALL-OB" if str(x).upper().strip()=="OB" else "CALL")
 
     df_chat = parse(gsheet_csv_url(SHEET_ID, GID_CHAT), CHAT_ITEMS,
-                    1,0,[3,4,5],50,51,48,49)
+                    1,0,[3,4,5],50,51,48,49, key_col=2)  # C열=2
     if len(df_chat): df_chat["채널"] = "CHAT"
 
     df_board = parse(gsheet_csv_url(SHEET_ID, GID_BOARD), BOARD_ITEMS,
-                     2,1,[4,5,6],42,43,40,41)
+                     2,1,[4,5,6],42,43,40,41, key_col=3)  # D열=3
     if len(df_board): df_board["채널"] = "게시판"
 
     df_all = pd.concat([df_call, df_chat, df_board], ignore_index=True)
@@ -457,9 +458,14 @@ def get_deduct_df(src_df, items_map):
         sc_col = f"{iname}_점수"
         rs_col = f"{iname}_감점사유"
         if sc_col not in src_df.columns: continue
-        cols = [sc_col, rs_col, "상담사","평가기간","채널"]
+        has_key = "KEY" in src_df.columns
+        cols = [sc_col, rs_col, "상담사","평가기간","채널"] + (["KEY"] if has_key else [])
         sub = src_df[cols].copy()
-        sub.columns = ["점수","감점사유","상담사","평가기간","채널"]
+        if has_key:
+            sub.columns = ["점수","감점사유","상담사","평가기간","채널","KEY"]
+        else:
+            sub.columns = ["점수","감점사유","상담사","평가기간","채널"]
+            sub["KEY"] = ""
         sub["항목"] = iname; sub["최대"] = mx
         sub = sub[sub["점수"].notna()]
         sub = sub[sub["점수"] < mx]
@@ -934,7 +940,7 @@ elif page == "감점 분석":
                 st.plotly_chart(fig_iss, use_container_width=True)
 
             st.markdown("**감점 원본 코멘트 (차수 포함)**")
-            show = ded[["평가기간","상담사","항목","점수","최대","감점사유"]].copy()
+            show = ded[["평가기간","KEY","상담사","항목","점수","최대","감점사유"]].copy()
             show = show.replace("", np.nan).dropna(subset=["감점사유"])
             show = show.rename(columns={"평가기간":"차수"})
             st.dataframe(show.reset_index(drop=True), use_container_width=True)
