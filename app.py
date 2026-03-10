@@ -1441,6 +1441,17 @@ elif page == "항목별 원인 추적":
                 st.markdown("**📋 감점 원본 코멘트 (차수 포함)**")
                 if cmt_recs_ot:
                     cmt_show = pd.DataFrame(cmt_recs_ot)[["차수","상담사","이슈유형","점수","코멘트"]]
+                    # 이슈유형 필터
+                    available_issues = sorted(cmt_show["이슈유형"].unique().tolist())
+                    sel_issues_ot = st.multiselect(
+                        "이슈유형 필터 (선택하면 해당 유형만 표시)",
+                        options=available_issues,
+                        default=available_issues,
+                        key=f"iss_filter_{item_sel_ot}"
+                    )
+                    if sel_issues_ot:
+                        cmt_show = cmt_show[cmt_show["이슈유형"].isin(sel_issues_ot)]
+                    st.markdown(f"<div style='font-size:12px;color:#94a3b8;margin-bottom:6px'>{len(cmt_show)}건 표시 중</div>", unsafe_allow_html=True)
                     st.dataframe(cmt_show.reset_index(drop=True), use_container_width=True)
 
 # ══════════════════════════════════════════════════════════════════
