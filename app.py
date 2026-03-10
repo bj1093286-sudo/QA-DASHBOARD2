@@ -212,8 +212,10 @@ ROOT_CAUSE = {
 }
 
 def classify_issue(text):
-    res = [l for l, p in ISSUE_PATTERNS if re.search(p, str(text))]
-    return res if res else ["기타"]
+    for l, p in ISSUE_PATTERNS:
+        if re.search(p, str(text)):
+            return [l]
+    return ["기타"]
 
 def _num(v):
     if v is None: return None
